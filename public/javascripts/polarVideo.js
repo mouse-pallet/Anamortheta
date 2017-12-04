@@ -30,8 +30,8 @@ function setup(){
 
     // (3)カメラの作成
     camera = new THREE.PerspectiveCamera(15, rWidth / rHeight);
-    // camera.position = new THREE.Vector3(0, 0, 15);
-    camera.position = new THREE.Vector3(0, 0, 8);
+    camera.position = new THREE.Vector3(0, 0, 15);
+    // camera.position = new THREE.Vector3(0, 0, 8);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(camera);
 
@@ -115,6 +115,116 @@ function makeBone(){
     return geometry;
 }
 
+function DetectStatus(e){
+    var touchList = e.touches;
+    var nodeList = [{NO:01,LEN:0},{NO:12,LEN:0},{NO:02,LEN:0}];
+
+    nodeList[0].LEN = Math.sqrt(Math.pow(touchList[0].pageX-touchList[1].pageX,2)
+            + Math.pow(touchList[0].pageY-touchList[1].pageY,2));
+    nodeList[0].NO = "01";
+
+    nodeList[1].LEN = Math.sqrt(Math.pow(touchList[2].pageX-touchList[1].pageX,2)
+        + Math.pow(touchList[2].pageY-touchList[1].pageY,2));
+    nodeList[1].NO = "12";
+
+    nodeList[2].LEN = Math.sqrt(Math.pow(touchList[0].pageX-touchList[2].pageX,2)
+        + Math.pow(touchList[0].pageY-touchList[2].pageY,2));
+    nodeList[2].NO = "02";
+
+    nodeList.sort(function(a, b) {
+        return (a.LEN < b.LEN) ? -1 : 1;
+    });
+
+    var longP;
+    var semiLongP;
+    var shortP;
+
+    if(nodeList[2].NO==="01"){
+        longP=touchList[2];
+        if(nodeList[1].NO==="12"){
+            semiLongP=touchList[0];
+            shortP=touchList[1];
+        }
+        else if(nodeList[1].NO==="02"){
+            semiLongP=touchList[1];
+            shortP=touchList[0];
+        }
+    }
+    else if(nodeList[2].NO==="12"){
+        longP=touchList[0];
+        if(nodeList[1].NO==="01"){
+            semiLongP=touchList[2];
+            shortP=touchList[1];
+        }
+        else if(nodeList[1].NO==="02"){
+            semiLongP=touchList[1];
+            shortP=touchList[2];
+        }
+    }
+    else if(nodeList[2].NO==="02"){
+        longP=touchList[1];
+        if(nodeList[1].NO==="01"){
+            semiLongP=touchList[2];
+            shortP=touchList[0];
+        }
+        else if(nodeList[1].NO==="12"){
+            semiLongP=touchList[0];
+            shortP=touchList[2];
+        }
+    }
+
+    var posX = (semiLongP.pageX + shortP.pageX) / 2;
+    var posY = (semiLongP.pageY + shortP.pageY) / 2;
+
+    var moveX = posX - renderer.domElement.offsetLeft;
+    var moveY = posY - renderer.domElement.offsetTop;
+
+    //中間点と、頂点のポイントの角度を取る
+    var radian = Math.atan2(-(posY-longP.pageY), posX-longP.pageX)+Math.PI;
+    var degree = radian*180/Math.PI;
+
+
+    return { x : moveX, y : moveY, degree : degree, timeStamp : new Date()} ;  // status
+}
+
+function addActorAction(){
+    var i=0;
+
+    //タッチイベントをサポートしているか調べる
+    //対応してなければクリック対応
+    if(window.TouchEvent){
+        console.log("タッチイベントに対応");
+    } else {
+        console.log("ERROR : タッチイベント未対応");
+    }
+        //Touch Event
+        //移動
+        renderer.domElement.addEventListener("touchstart", function(e){
+
+            if(e.touches.length >= 3){
+
+                if(nowStatus == null){
+                    preStatus = DetectStatus(e);
+                }else{
+                    nowStatus = DetectStatus(e);
+                }
+            }
+
+        });
+
+        //回転
+        renderer.domElement.addEventListener("touchmove", function(e){
+
+            if(e.touches.length >= 3){
+                nowStatus = DetectStatus(e);
+
+                var radian = nowStatus.degree/180*Math.PI;
+                meshlist[i].rotation.z = radian;
+
+            }
+        });
+}
+
 
 //オブジェクト、およびメッシュリストを追加する
 function addActor(video){
@@ -124,6 +234,7 @@ function addActor(video){
     var Mesh = anamor.mappingVideo();
     meshlist.push(Mesh);
     scene.add(Mesh);
+    addActorAction();
 
     //render
     render();
