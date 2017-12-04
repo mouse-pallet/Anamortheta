@@ -1,0 +1,32 @@
+extends layout
+
+block content
+    #streams
+    #render_canvas
+    script(type="text/javascript").
+        //ここからシステムスタート
+        // MultiParty インスタンスを生成
+          multiparty = new MultiParty( {
+                "key": "a6c8450d-0132-4f6b-87fd-335791028f73"  /* SkyWay keyを指定 */
+          });
+
+          console.log("system_start");
+
+          multiparty.on('my_ms', function(video) {
+            console.log("my_ms_start");
+            // 自分のvideoを表示
+            var vNode = MultiParty.util.createVideoNode(video);
+            $(vNode).appendTo("#streams");
+            setup();
+          }).on('peer_ms', function(video) {
+            // peerのvideoを表示
+            var vNode = MultiParty.util.createVideoNode(video);
+            $(vNode).appendTo("#streams");
+            addActor(vNode);
+          }).on('ms_close', function(peer_id) {
+            // peerが切れたら、対象のvideoノードを削除する
+            $("#"+peer_id).remove();
+          });
+
+          // サーバとpeerに接続
+          multiparty.start()
